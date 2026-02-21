@@ -4,45 +4,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
    CHAT ENDPOINTS
 ───────────────────────────────────────────────────────────────── */
 
-/**
- * Streams tokens from POST /chat/stream via SSE.
- * Yields: { token: string } | { error: string } | { done: true }
- */
-export async function* streamChat(message, threadId = "default") {
-  const response = await fetch(`${API_BASE}/chat/stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, thread_id: threadId }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "Unknown error");
-    yield { error: `Server error ${response.status}: ${text}` };
-    return;
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop();
-
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const raw = line.slice(6).trim();
-      if (raw === "[DONE]") { yield { done: true }; return; }
-      try { yield JSON.parse(raw); } catch { /* skip malformed */ }
-    }
-  }
-}
-
-/** Blocking POST /chat — returns full response string. */
+/** POST /chat — returns full response string. */
 export async function sendChat(message, threadId = "default") {
   const response = await fetch(`${API_BASE}/chat`, {
     method: "POST",

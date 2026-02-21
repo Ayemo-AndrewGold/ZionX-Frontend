@@ -7,7 +7,7 @@ import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
 import OnboardingModal from "./OnboardingModal";
 import { SPECIALISTS } from "./SpecialistCards";
-import { streamChat, detectSpecialist } from "@/lib/api";
+import { sendChat, detectSpecialist } from "@/lib/api";
 
 function uuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -86,24 +86,18 @@ export default function ChatWindow() {
     setStreaming(true);
 
     try {
-      let accumulated = "";
-      let firstToken = true;
-
-      for await (const chunk of streamChat(text, threadId)) {
-        if (chunk.done) break;
-        if (chunk.error) {
-          updateLastAiMessage({ content: `⚠️ ${chunk.error}`, streaming: false, thinking: false });
-          break;
-        }
-        if (chunk.token) {
-          accumulated += chunk.token;
-          if (firstToken) { firstToken = false; updateLastAiMessage({ thinking: false }); }
-          updateLastAiMessage({ content: accumulated });
-        }
-      }
-      updateLastAiMessage({ streaming: false, thinking: false });
+      const response = await sendChat(text, threadId);
+      updateLastAiMessage({ 
+        content: response, 
+        streaming: false, 
+        thinking: false 
+      });
     } catch (err) {
-      updateLastAiMessage({ content: `⚠️ Connection error: ${err.message}`, streaming: false, thinking: false });
+      updateLastAiMessage({ 
+        content: `⚠️ Connection error: ${err.message}`, 
+        streaming: false, 
+        thinking: false 
+      });
     } finally {
       setStreaming(false);
     }
