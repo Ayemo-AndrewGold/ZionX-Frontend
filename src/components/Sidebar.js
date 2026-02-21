@@ -30,7 +30,6 @@ const NAV_ITEMS = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
       </svg>
     ),
-    badge: "Soon",
   },
   {
     id: "risk",
@@ -62,7 +61,17 @@ const AGENTS = [
   { key: "emergency",    label: "Emergency Triage", icon: "🚨", color: "text-red-600",    bg: "bg-red-50" },
 ];
 
-export default function Sidebar({ activeNav = "chat", onNavChange, onNewChat, onOpenProfile, recentChats = [] }) {
+export default function Sidebar({ 
+  activeNav = "chat", 
+  onNavChange, 
+  onNewChat, 
+  onOpenProfile, 
+  onSelectChat,
+  onLogout,
+  recentChats = [],
+  currentThreadId,
+  currentUserId = "guest"
+}) {
   const [agentsExpanded, setAgentsExpanded] = useState(true);
 
   return (
@@ -140,13 +149,16 @@ export default function Sidebar({ activeNav = "chat", onNavChange, onNewChat, on
           Long-term Memory
         </p>
         <div className="space-y-2">
-          <div className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors">
+          <button
+            onClick={() => onNavChange?.("memory")}
+            className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors"
+          >
             <span className="text-base">🧬</span>
-            <div>
-              <p className="text-xs font-semibold text-slate-700">Long-term</p>
-              <p className="text-[10px] text-slate-400">Health timeline (API pending)</p>
+            <div className="text-left">
+              <p className="text-xs font-semibold text-slate-700">View Memory</p>
+              <p className="text-[10px] text-slate-400">Your health timeline</p>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -160,10 +172,16 @@ export default function Sidebar({ activeNav = "chat", onNavChange, onNewChat, on
         {recentChats.length === 0 ? (
           <p className="px-3 py-2 text-xs text-slate-400 italic">No recent conversations</p>
         ) : (
-          recentChats.slice(0, 6).map((chat, i) => (
+          recentChats.slice(0, 10).map((chat) => (
             <button
-              key={i}
-              className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-600 hover:bg-slate-50 truncate mb-0.5"
+              key={chat.threadId}
+              onClick={() => onSelectChat?.(chat)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs mb-0.5 truncate transition-colors ${
+                chat.threadId === currentThreadId
+                  ? "bg-teal-50 text-teal-700 font-medium"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+              title={chat.title}
             >
               {chat.title || "Untitled conversation"}
             </button>
@@ -172,22 +190,34 @@ export default function Sidebar({ activeNav = "chat", onNavChange, onNewChat, on
       </div>
 
       {/* ── Footer ── */}
-      <div className="px-4 py-3 border-t border-slate-100 mt-auto">
+      <div className="px-4 py-3 border-t border-slate-100 mt-auto space-y-2">
+        {/* User Profile */}
         <button
           onClick={onOpenProfile}
           className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-teal-50 to-blue-50 border border-teal-100 hover:border-teal-200 hover:bg-gradient-to-r hover:from-teal-100 hover:to-blue-100 transition-all"
         >
           <div className="w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 text-xs font-bold shrink-0">
-            U
+            {currentUserId[0]?.toUpperCase() || "U"}
           </div>
           <div className="flex-1 min-w-0 text-left">
-            <p className="text-xs font-semibold text-slate-800 truncate">My Profile</p>
-            <p className="text-[10px] text-slate-400 truncate">No profile set up</p>
+            <p className="text-xs font-semibold text-slate-800 truncate">{currentUserId}</p>
+            <p className="text-[10px] text-slate-400 truncate">My Profile</p>
           </div>
           {/* Profile icon */}
           <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
+        </button>
+
+        {/* Logout Button */}
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-red-600 hover:border-red-200 transition-all text-xs"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span className="font-medium">Switch User</span>
         </button>
       </div>
     </aside>
