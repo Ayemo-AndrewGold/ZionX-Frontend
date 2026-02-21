@@ -178,3 +178,14 @@ body {
   background-size: 200% 200%;
   animation: gradientShift 6s ease infinite;
 }
+
+/* ─── Landing Page Animations ───────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50%       { transform: translateY(-18px) scale(1.1); }
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50%       { transform: translateY(6px); opacity: 0.4; }
+}

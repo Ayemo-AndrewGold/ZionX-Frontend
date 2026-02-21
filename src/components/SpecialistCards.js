@@ -113,52 +113,16 @@ export default function SpecialistCards({ onExample }) {
         </div>
       </div>
 
-      {/* ── Agent Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
-        {Object.entries(SPECIALISTS).map(([key, spec]) => (
-          <div
-            key={key}
-            className={`rounded-2xl border p-4 ${spec.color} flex flex-col gap-3 hover:shadow-md transition-shadow`}
-          >
-            {/* Card header */}
-            <div className="flex items-center gap-2.5">
-              <span className={`text-xl w-10 h-10 flex items-center justify-center rounded-xl ${spec.iconBg} shadow-sm`}>
-                {spec.icon}
-              </span>
-              <div>
-                <p className="font-bold text-sm leading-tight">{spec.label}</p>
-                <p className="text-[10px] opacity-60 font-medium">Specialist Agent</p>
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className="text-xs leading-relaxed opacity-75">{spec.description}</p>
-
-            {/* Example prompts */}
-            <div className="flex flex-col gap-1 mt-auto">
-              {spec.examples.map((example) => (
-                <button
-                  key={example}
-                  onClick={() => onExample(example)}
-                  className="text-left text-xs px-2.5 py-1.5 rounded-lg bg-white/60 hover:bg-white/95 transition-all border border-white/40 truncate hover:shadow-sm"
-                >
-                  &quot;{example}&quot;
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
 
       {/* ── Disclaimer ── */}
-      <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 max-w-lg w-full">
+      {/* <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 max-w-lg w-full">
         <span className="text-amber-500 text-base shrink-0">⚠️</span>
         <p className="text-[11px] text-amber-800 leading-relaxed">
           ZionX provides <strong>informational guidance only</strong> and is not a substitute
           for professional medical advice, diagnosis, or treatment. Always consult a qualified
           healthcare professional.
         </p>
-      </div>
+      </div> */}
     </div>
   );
 }

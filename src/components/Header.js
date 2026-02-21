@@ -44,7 +44,7 @@ export default function Header({ onNewChat, onToggleSidebar, onOpenOnboarding, s
         </button>
 
         {/* Logo */}
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="brand-gradient flex items-center justify-center w-9 h-9 rounded-xl text-white font-black text-sm select-none shadow-md">
             Zx
           </div>
@@ -52,7 +52,7 @@ export default function Header({ onNewChat, onToggleSidebar, onOpenOnboarding, s
             <h1 className="text-sm font-bold text-slate-900 leading-tight tracking-tight">ZionX</h1>
             <p className="text-[10px] text-slate-400 leading-tight">AI Preventive Health</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Centre — tagline (desktop) */}
