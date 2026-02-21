@@ -23,11 +23,6 @@ export default function ChatInput({ value, onChange, onSend, disabled }) {
     <div className="shrink-0 bg-white border-t border-slate-200/80 px-4 py-3">
       <div className="max-w-3xl mx-auto space-y-2">
 
-        {/* Disclaimer */}
-        <p className="text-[10px] text-center text-slate-400">
-          ZionX provides informational guidance only — always consult a qualified healthcare professional.
-        </p>
-
         {/* Input card */}
         <div
           className={`rounded-2xl border transition-all shadow-sm ${
@@ -111,10 +106,6 @@ export default function ChatInput({ value, onChange, onSend, disabled }) {
             </button>
 
             <div className="flex-1" />
-
-            <p className="text-[10px] text-slate-300">
-              Enter to send · Shift+Enter for new line
-            </p>
           </div>
         </div>
       </div>
