@@ -1,23 +1,48 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens ────────────────────────────────────────────── */
 :root {
-  --background: #f8fafc;
+  --background: #f0f4f8;
   --foreground: #0f172a;
   --font-sans: var(--font-inter), system-ui, sans-serif;
+
+  /* Brand */
+  --brand-50:  #f0fdfa;
+  --brand-100: #ccfbf1;
+  --brand-200: #99f6e4;
+  --brand-400: #2dd4bf;
+  --brand-500: #14b8a6;
+  --brand-600: #0d9488;
+  --brand-700: #0f766e;
+  --brand-800: #115e59;
+  --brand-900: #134e4a;
+
+  /* Surface */
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+
+  /* Sidebar */
+  --sidebar-w: 260px;
+  --panel-w: 300px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+
+  /* Risk colours */
+  --risk-low:      #10b981;
+  --risk-moderate: #f59e0b;
+  --risk-high:     #ef4444;
+  --risk-critical: #7c3aed;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-}
+/* ─── Reset ────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
+html, body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -27,61 +52,129 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Typing cursor blink */
+/* ─── Animations ────────────────────────────────────────────────── */
 @keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  50%       { opacity: 0; }
 }
 
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideRight {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes routingPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(.92); }
+  60%  { transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(20,184,166,.4); }
+  70%  { box-shadow: 0 0 0 8px rgba(20,184,166,0); }
+  100% { box-shadow: 0 0 0 0 rgba(20,184,166,0); }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ─── Utility Classes ───────────────────────────────────────────── */
 .cursor-blink::after {
   content: "▋";
   animation: blink 0.8s step-end infinite;
   margin-left: 1px;
-  color: #0f766e;
-}
-
-/* Fade-in for messages */
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  color: var(--brand-600);
 }
 
 .message-enter {
-  animation: fadeSlideIn 0.25s ease-out forwards;
+  animation: fadeSlideIn 0.28s ease-out forwards;
 }
 
-/* Pulse for routing indicator */
-@keyframes routingPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
+.sidebar-enter {
+  animation: fadeSlideRight 0.22s ease-out forwards;
+}
+
+.pop-in {
+  animation: popIn 0.3s cubic-bezier(.34,1.56,.64,1) forwards;
 }
 
 .routing-pulse {
   animation: routingPulse 1.4s ease-in-out infinite;
+}
+
+.pulse-ring {
+  animation: pulseRing 2s ease-out infinite;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Gradient hero text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--brand-600) 0%, #6366f1 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass card */
+.glass {
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.5);
+}
+
+/* Sidebar active item */
+.nav-item-active {
+  background: linear-gradient(135deg, var(--brand-50) 0%, #ede9fe 100%);
+  border-left: 3px solid var(--brand-600);
+  color: var(--brand-800);
+  font-weight: 600;
+}
+
+/* Risk badge colours */
+.risk-low      { background: #d1fae5; color: #065f46; }
+.risk-moderate { background: #fef3c7; color: #92400e; }
+.risk-high     { background: #fee2e2; color: #991b1b; }
+.risk-critical { background: #ede9fe; color: #4c1d95; }
+
+/* Animated gradient brand bar */
+.brand-gradient {
+  background: linear-gradient(135deg, var(--brand-700) 0%, #0369a1 50%, #4f46e5 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
 }
