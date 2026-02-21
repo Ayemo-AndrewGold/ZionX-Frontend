@@ -5,49 +5,50 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 ───────────────────────────────────────────────────────────────── */
 
 /**
- * Streams tokens from POST /chat/stream via SSE.
+ * Simulates streaming by sending blocking request and yielding response word by word.
+ * This provides a smooth UX until backend implements true SSE streaming.
  * Yields: { token: string } | { error: string } | { done: true }
  */
-export async function* streamChat(message, threadId = "default") {
-  const response = await fetch(`${API_BASE}/chat/stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, thread_id: threadId }),
-  });
+export async function* streamChat(message, threadId = "default", userId = "guest") {
+  try {
+    const response = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, thread_id: threadId, user_id: userId }),
+    });
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "Unknown error");
-    yield { error: `Server error ${response.status}: ${text}` };
-    return;
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop();
-
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const raw = line.slice(6).trim();
-      if (raw === "[DONE]") { yield { done: true }; return; }
-      try { yield JSON.parse(raw); } catch { /* skip malformed */ }
+    if (!response.ok) {
+      const text = await response.text().catch(() => "Unknown error");
+      yield { error: `Server error ${response.status}: ${text}` };
+      return;
     }
+
+    const data = await response.json();
+    if (data.error) {
+      yield { error: data.error };
+      return;
+    }
+
+    // Simulate streaming by yielding words with small delays
+    const words = data.response.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      yield { token: (i === 0 ? '' : ' ') + words[i] };
+      // Small delay to simulate streaming
+      await new Promise(resolve => setTimeout(resolve, 30));
+    }
+    
+    yield { done: true };
+  } catch (err) {
+    yield { error: err.message };
   }
 }
 
 /** Blocking POST /chat — returns full response string. */
-export async function sendChat(message, threadId = "default") {
+export async function sendChat(message, threadId = "default", userId = "guest") {
   const response = await fetch(`${API_BASE}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, thread_id: threadId }),
+    body: JSON.stringify({ message, thread_id: threadId, user_id: userId }),
   });
   if (!response.ok) throw new Error(`Server error ${response.status}`);
   const data = await response.json();
@@ -151,33 +152,72 @@ export async function getRiskScore(threadId) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   MEMORY  (API stub)
+   MEMORY & THREADS
 ───────────────────────────────────────────────────────────────── */
 
 /**
- * GET /memory/insights?thread_id=xxx
- * Returns long-term memory insights and health patterns.
+ * GET /memory?user_id=xxx
+ * Returns long-term memory facts for a specific user.
  */
-export async function getMemoryInsights(threadId) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/memory/insights?thread_id=${threadId}`);
-  // if (!res.ok) throw new Error(`Memory fetch failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] getMemoryInsights:", threadId);
-  return { insights: [], patterns: [] };
+export async function getMemory(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/memory?user_id=${userId}`);
+    if (!res.ok) throw new Error(`Memory fetch failed: ${res.status}`);
+    const data = await res.json();
+    return data.facts || "";
+  } catch (err) {
+    console.error("[API] getMemory error:", err);
+    return "";
+  }
 }
 
 /**
- * DELETE /memory?thread_id=xxx
- * Deletes all long-term memory for a user (privacy compliance).
+ * DELETE /memory?user_id=xxx
+ * Deletes all long-term memory for a specific user (privacy compliance).
  */
-export async function deleteMemory(threadId) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/memory?thread_id=${threadId}`, { method: "DELETE" });
-  // if (!res.ok) throw new Error(`Memory delete failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] deleteMemory:", threadId);
-  return { ok: true };
+export async function deleteMemory(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/memory?user_id=${userId}`, { 
+      method: "DELETE" 
+    });
+    if (!res.ok) throw new Error(`Memory delete failed: ${res.status}`);
+    return res.json();
+  } catch (err) {
+    console.error("[API] deleteMemory error:", err);
+    throw err;
+  }
+}
+
+/**
+ * GET /threads?user_id=xxx
+ * Returns list of all chat threads/sessions for a specific user.
+ */
+export async function getThreads(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/threads?user_id=${userId}`);
+    if (!res.ok) throw new Error(`Threads fetch failed: ${res.status}`);
+    const data = await res.json();
+    return data.threads || [];
+  } catch (err) {
+    console.error("[API] getThreads error:", err);
+    return [];
+  }
+}
+
+/**
+ * GET /users
+ * Returns list of all users with memory data.
+ */
+export async function getUsers() {
+  try {
+    const res = await fetch(`${API_BASE}/users`);
+    if (!res.ok) throw new Error(`Users fetch failed: ${res.status}`);
+    const data = await res.json();
+    return data.users || [];
+  } catch (err) {
+    console.error("[API] getUsers error:", err);
+    return [];
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────
