@@ -5,8 +5,6 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
-import SpecialistCards from "./SpecialistCards";
-import RiskPanel from "./RiskPanel";
 import OnboardingModal from "./OnboardingModal";
 import { SPECIALISTS } from "./SpecialistCards";
 import { streamChat, detectSpecialist } from "@/lib/api";
@@ -24,7 +22,6 @@ export default function ChatWindow() {
   const [streaming, setStreaming] = useState(false);
   const [threadId] = useState(() => uuid());
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [panelOpen, setPanelOpen] = useState(true);
   const [activeNav, setActiveNav] = useState("chat");
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [activeSpecialist, setActiveSpecialist] = useState(null);
@@ -35,18 +32,13 @@ export default function ChatWindow() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Responsive: collapse sidebar/panel on small screens
+  // Responsive: collapse sidebar on small screens
   useEffect(() => {
     function handleResize() {
       if (window.innerWidth < 768) {
         setSidebarOpen(false);
-        setPanelOpen(false);
-      } else if (window.innerWidth < 1200) {
-        setPanelOpen(false);
-        setSidebarOpen(true);
       } else {
         setSidebarOpen(true);
-        setPanelOpen(true);
       }
     }
     handleResize();
@@ -132,9 +124,7 @@ export default function ChatWindow() {
 
       {/* ── Header ── */}
       <Header
-        onNewChat={handleNewChat}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
-        onOpenOnboarding={() => setOnboardingOpen(true)}
         sidebarOpen={sidebarOpen}
       />
 
@@ -151,6 +141,8 @@ export default function ChatWindow() {
             <Sidebar
               activeNav={activeNav}
               onNavChange={setActiveNav}
+              onNewChat={handleNewChat}
+              onOpenProfile={() => setOnboardingOpen(true)}
               recentChats={[]}
             />
           )}
@@ -162,7 +154,12 @@ export default function ChatWindow() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto">
             {isEmpty ? (
-              <SpecialistCards onExample={(ex) => setInput(ex)} />
+              <div className="h-full flex items-center justify-center px-4">
+                <div className="text-center max-w-md">
+                  <h2 className="text-2xl font-semibold text-slate-700 mb-2">ZionX</h2>
+                  <p className="text-slate-500 text-sm">Ready when you are.</p>
+                </div>
+              </div>
             ) : (
               <div className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col gap-5">
                 {messages.map((msg) => (
@@ -182,32 +179,6 @@ export default function ChatWindow() {
             disabled={streaming}
           />
         </main>
-
-        {/* Right panel — Risk & Tracking */}
-        <div
-          className={`shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${
-            panelOpen ? "w-[300px]" : "w-0"
-          }`}
-        >
-          {panelOpen && (
-            <RiskPanel currentSpecialist={currentSpecialist} />
-          )}
-        </div>
-
-        {/* Panel toggle button (always visible) */}
-        <button
-          onClick={() => setPanelOpen((v) => !v)}
-          title={panelOpen ? "Hide panel" : "Show health panel"}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-5 h-12 bg-white border border-slate-200 rounded-l-lg flex items-center justify-center text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors shadow-sm"
-          style={{ right: panelOpen ? "300px" : "0" }}
-        >
-          <svg
-            className={`w-3 h-3 transition-transform ${panelOpen ? "rotate-0" : "rotate-180"}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
       </div>
 
       {/* ── Onboarding Modal ── */}
