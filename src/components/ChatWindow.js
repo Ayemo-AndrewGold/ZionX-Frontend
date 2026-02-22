@@ -6,8 +6,9 @@ import Sidebar from "./Sidebar";
 import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
 import OnboardingModal from "./OnboardingModal";
+import LoginModal from "./LoginModal";
 import { SPECIALISTS } from "./SpecialistCards";
-import { sendChat, detectSpecialist } from "@/lib/api";
+import { sendChat, detectSpecialist, isLoggedIn, getCurrentUserId, getCurrentUsername, logoutUser } from "@/lib/api";
 
 function uuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -21,14 +22,27 @@ export default function ChatWindow() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [threadId] = useState(() => uuid());
-  const [userId] = useState("guest"); // TODO: Replace with actual user authentication
+  const [userId, setUserId] = useState(null);
+  const [username, setUsername] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeNav, setActiveNav] = useState("chat");
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [activeSpecialist, setActiveSpecialist] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("yo"); // Default to Yoruba
 
   const bottomRef = useRef(null);
+
+  // Check authentication on mount
+  useEffect(() => {
+    if (isLoggedIn()) {
+      setUserId(getCurrentUserId());
+      setUsername(getCurrentUsername());
+    } else {
+      // Show login modal if not logged in
+      setLoginModalOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,6 +77,20 @@ export default function ChatWindow() {
       }
       return copy;
     });
+  }, []);
+
+  const handleLoginSuccess = useCallback((user) => {
+    setUserId(user.user_id);
+    setUsername(user.username);
+    setLoginModalOpen(false);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    logoutUser();
+    setUserId(null);
+    setUsername(null);
+    setMessages([]);
+    setLoginModalOpen(true);
   }, []);
 
   async function handleSend() {
@@ -115,6 +143,19 @@ export default function ChatWindow() {
   const isEmpty = messages.length === 0;
   const currentSpecialist = activeSpecialist ? SPECIALISTS[activeSpecialist] : null;
 
+  // Don't render chat if not logged in
+  if (!userId) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-slate-100">
+        <LoginModal
+          open={loginModalOpen}
+          onClose={() => {}}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-100">
 
@@ -139,6 +180,8 @@ export default function ChatWindow() {
               onNavChange={setActiveNav}
               onNewChat={handleNewChat}
               onOpenProfile={() => setOnboardingOpen(true)}
+              onLogout={handleLogout}
+              username={username}
               recentChats={[]}
             />
           )}
@@ -182,6 +225,13 @@ export default function ChatWindow() {
 
       {/* ── Onboarding Modal ── */}
       <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
+      
+      {/* ── Login Modal ── */}
+      <LoginModal
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }
