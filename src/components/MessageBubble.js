@@ -176,7 +176,7 @@ function VoiceButton({ text, language = "yo" }) {
   const langName = languageNames[language] || language;
   const tooltip = playing 
     ? "Stop voice" 
-    : `Play in ${langName}${language !== 'en' ? ' (auto-translated)' : ''}`;
+    : `Play in ${langName}${language !== 'en' ? ' (translated & spoken)' : ''}`;
 
   const languageFlags = {
     'yo': '🇳🇬',

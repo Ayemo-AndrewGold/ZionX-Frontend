@@ -236,10 +236,10 @@ export async function transcribeAudio(audioBlob, language = "yo") {
 
 /**
  * POST /speech/generate
- * Convert text to audio (Text-to-Speech) with automatic translation.
- * Spitch automatically translates English text to the target language.
- * Example: English text + language='yo' → Yoruba speech
- * @param {string} text - English text to convert to speech (will be auto-translated)
+ * Convert text to audio (Text-to-Speech) with translation.
+ * Backend process: English text → translate to target language → generate speech
+ * Example: English text + language='yo' → translates to Yoruba → Yoruba speech
+ * @param {string} text - English text to convert to speech (will be translated first)
  * @param {string} language - Target language code (yo, ha, ig, en)
  */
 export async function generateSpeech(text, language = "yo") {
