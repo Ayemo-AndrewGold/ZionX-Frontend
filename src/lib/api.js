@@ -109,7 +109,7 @@ export async function getCurrentUser() {
    CHAT ENDPOINTS
 ───────────────────────────────────────────────────────────────── */
 
-/** POST /chat — returns full response string. */
+/** POST /chat — returns full response object with risk assessment. */
 export async function sendChat(message, threadId = "default") {
   const response = await fetch(`${API_BASE}/chat`, {
     method: "POST",
@@ -122,7 +122,8 @@ export async function sendChat(message, threadId = "default") {
   if (!response.ok) throw new Error(`Server error ${response.status}`);
   const data = await response.json();
   if (data.error) throw new Error(data.error);
-  return data.response;
+  // Return full object: { response, risk_level, urgency }
+  return data;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -141,64 +142,104 @@ export async function checkHealth() {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   ONBOARDING  (API stub — integrate when backend is ready)
+   ONBOARDING ENDPOINTS
 ───────────────────────────────────────────────────────────────── */
 
 /**
  * POST /onboarding/profile
  * Saves the user's health profile for personalised AI guidance.
- * @param {Object} profileData - { name, age, bloodGroup, allergies, avoidMeds, conditions, doctorEmail, emergencyContact, consentAlerts }
+ * @param {Object} profileData - { allergies, medications_to_avoid, blood_group, conditions, ongoing_issues, emergency_contacts, language, output_mode }
  */
 export async function saveOnboardingProfile(profileData) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/onboarding/profile`, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(profileData),
-  // });
-  // if (!res.ok) throw new Error(`Profile save failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] saveOnboardingProfile:", profileData);
-  return { ok: true };
+  const res = await fetch(`${API_BASE}/onboarding/profile`, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify(profileData),
+  });
+  if (!res.ok) throw new Error(`Profile save failed: ${res.status}`);
+  return res.json();
 }
 
 /**
- * POST /onboarding/documents
- * Uploads a medical document for AI summarisation.
+ * GET /onboarding/profile
+ * Gets the user's onboarding profile.
+ */
+export async function getOnboardingProfile() {
+  const res = await fetch(`${API_BASE}/onboarding/profile`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to get profile: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * POST /upload - Upload medical document
+ * Uploads a medical document for AI summarisation and fact extraction.
  * @param {FormData} formData - contains the file
  */
 export async function uploadMedicalDocument(formData) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/onboarding/documents`, {
-  //   method: "POST",
-  //   body: formData,
-  // });
-  // if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] uploadMedicalDocument");
-  return { ok: true, summary: "Document summary pending API integration." };
+  const res = await fetch(`${API_BASE}/upload`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  return res.json();
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   DAILY TRACKING  (API stub)
+   DAILY TRACKING ENDPOINTS
 ───────────────────────────────────────────────────────────────── */
 
 /**
  * POST /tracking/daily
  * Submits daily health tracking data (mood, symptoms, energy, medications).
- * @param {Object} trackingData - { mood, symptoms, energy, meds, threadId }
+ * @param {Object} trackingData - { mood, symptoms, energy, medications, notes }
  */
 export async function submitDailyTracking(trackingData) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/tracking/daily`, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(trackingData),
-  // });
-  // if (!res.ok) throw new Error(`Tracking submit failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] submitDailyTracking:", trackingData);
-  return { ok: true };
+  const res = await fetch(`${API_BASE}/tracking/daily`, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify(trackingData),
+  });
+  if (!res.ok) throw new Error(`Tracking submit failed: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * GET /tracking/history
+ * Gets user's tracking history.
+ * @param {number} days - Number of days to retrieve (optional)
+ */
+export async function getTrackingHistory(days = null) {
+  const url = days 
+    ? `${API_BASE}/tracking/history?days=${days}`
+    : `${API_BASE}/tracking/history`;
+  
+  const res = await fetch(url, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to get tracking history: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * GET /tracking/summary
+ * Gets formatted summary of recent tracking data.
+ * @param {number} days - Number of days to summarize (default: 7)
+ */
+export async function getTrackingSummary(days = 7) {
+  const res = await fetch(`${API_BASE}/tracking/summary?days=${days}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to get tracking summary: ${res.status}`);
+  return res.json();
 }
 
 /* ─────────────────────────────────────────────────────────────────

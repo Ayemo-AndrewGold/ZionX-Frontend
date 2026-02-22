@@ -77,6 +77,65 @@ function RoutingBadge({ specialist }) {
   );
 }
 
+/* ── Risk level badge ── */
+function RiskBadge({ level }) {
+  if (!level) return null;
+  
+  const styles = {
+    low: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    medium: "bg-amber-50 text-amber-700 border-amber-200",
+    high: "bg-orange-50 text-orange-700 border-orange-200",
+    critical: "bg-red-50 text-red-700 border-red-200"
+  };
+  
+  const icons = {
+    low: "✓",
+    medium: "⚠",
+    high: "⚠",
+    critical: "🚨"
+  };
+  
+  return (
+    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${styles[level] || styles.low}`}>
+      <span>{icons[level]}</span>
+      <span>{level.charAt(0).toUpperCase() + level.slice(1)} Risk</span>
+    </div>
+  );
+}
+
+/* ── Urgency badge ── */
+function UrgencyBadge({ urgency }) {
+  if (!urgency) return null;
+  
+  const styles = {
+    monitor: "bg-slate-50 text-slate-600 border-slate-200",
+    schedule_visit: "bg-blue-50 text-blue-700 border-blue-200",
+    seek_urgent_care: "bg-orange-50 text-orange-700 border-orange-200",
+    call_emergency: "bg-red-50 text-red-700 border-red-200"
+  };
+  
+  const labels = {
+    monitor: "Monitor",
+    schedule_visit: "Schedule Visit",
+    seek_urgent_care: "Seek Urgent Care",
+    call_emergency: "Call Emergency"
+  };
+  
+  const icons = {
+    monitor: "👁",
+    schedule_visit: "📅",
+    seek_urgent_care: "⏱️",
+    call_emergency: "📞"
+  };
+  
+  return (
+    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${styles[urgency] || styles.monitor}`}>
+      <span>{icons[urgency]}</span>
+      <span>{labels[urgency]}</span>
+    </div>
+  );
+}
+
 /* ── Thinking dots ── */
 function ThinkingDots() {
   return (
@@ -259,10 +318,16 @@ export default function MessageBubble({ message, language = "yo" }) {
           )}
         </div>
 
-        {/* Meta row: badge + timestamp + voice + copy */}
-        <div className={`flex items-center gap-2 px-1 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+        {/* Meta row: badges + timestamp + voice + copy */}
+        <div className={`flex items-center gap-2 px-1 flex-wrap ${isUser ? "flex-row-reverse" : "flex-row"}`}>
           {message.specialist && !isUser && (
             <RoutingBadge specialist={message.specialist} />
+          )}
+          {message.risk_level && !isUser && (
+            <RiskBadge level={message.risk_level} />
+          )}
+          {message.urgency && !isUser && (
+            <UrgencyBadge urgency={message.urgency} />
           )}
           {message.timestamp && (
             <span className="text-[10px] text-slate-400">

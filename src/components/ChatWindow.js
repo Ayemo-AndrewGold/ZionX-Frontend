@@ -116,11 +116,13 @@ export default function ChatWindow() {
     setStreaming(true);
 
     try {
-      const response = await sendChat(text, threadId);
+      const result = await sendChat(text, threadId);
       updateLastAiMessage({ 
-        content: response, 
+        content: result.response, 
         streaming: false, 
-        thinking: false 
+        thinking: false,
+        risk_level: result.risk_level,
+        urgency: result.urgency
       });
     } catch (err) {
       updateLastAiMessage({ 
