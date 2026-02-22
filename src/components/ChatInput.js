@@ -1,13 +1,27 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { uploadDocument } from "@/lib/api";
+import { uploadDocument, transcribeAudio } from "@/lib/api";
 
-export default function ChatInput({ value, onChange, onSend, disabled, userId = "guest" }) {
+export default function ChatInput({ 
+  value, 
+  onChange, 
+  onSend, 
+  disabled, 
+  userId = "guest",
+  selectedLanguage = "yo",
+  onLanguageChange
+}) {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [transcribing, setTranscribing] = useState(false);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -16,10 +30,79 @@ export default function ChatInput({ value, onChange, onSend, disabled, userId = 
     ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
   }, [value]);
 
+  // Recording timer
+  useEffect(() => {
+    let interval;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingTime(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (!disabled && value.trim()) onSend();
+    }
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        await handleTranscription(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("Unable to access microphone. Please check permissions.");
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  }
+
+  async function handleTranscription(audioBlob) {
+    setTranscribing(true);
+    try {
+      const transcribedText = await transcribeAudio(audioBlob, selectedLanguage);
+      onChange(value + (value ? " " : "") + transcribedText);
+    } catch (error) {
+      console.error("Transcription error:", error);
+      setUploadMessage(`✗ ${error.message}`);
+      setTimeout(() => setUploadMessage(""), 5000);
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  function toggleRecording() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   }
 
@@ -99,17 +182,52 @@ export default function ChatInput({ value, onChange, onSend, disabled, userId = 
 
           {/* Toolbar */}
           <div className="flex items-center gap-1 px-3 pb-2 border-t border-slate-100 pt-2">
-            {/* Voice input stub — API integration point */}
+            {/* Voice input */}
             <button
-              title="Voice input (coming soon)"
-              disabled
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed transition-colors"
+              type="button"
+              onClick={toggleRecording}
+              disabled={disabled || transcribing}
+              title={isRecording ? "Stop recording" : "Start voice input"}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                isRecording
+                  ? "bg-red-500 text-white animate-pulse"
+                  : transcribing
+                  ? "text-slate-400 cursor-not-allowed"
+                  : "text-teal-600 hover:bg-teal-50"
+              }`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-              <span>Voice</span>
+              {transcribing ? (
+                <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              )}
+              <span>
+                {transcribing 
+                  ? "Processing..." 
+                  : isRecording 
+                  ? `${recordingTime}s` 
+                  : "Voice"}
+              </span>
             </button>
+
+            {/* Language selector */}
+            <select
+              value={selectedLanguage}
+              onChange={(e) => onLanguageChange?.(e.target.value)}
+              disabled={disabled || isRecording}
+              className="px-2 py-1 rounded-lg text-xs border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:cursor-not-allowed"
+              title="Select language"
+            >
+              <option value="yo">🇳🇬 Yoruba</option>
+              <option value="ha">🇳🇬 Hausa</option>
+              <option value="ig">🇳🇬 Igbo</option>
+              <option value="en">🇬🇧 English</option>
+            </select>
 
             {/* Video input stub */}
             <button

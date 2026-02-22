@@ -207,3 +207,59 @@ export function detectSpecialist(text) {
     return "emergency";
   return null;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   VOICE INTERACTION (Speech-to-Text & Text-to-Speech)
+───────────────────────────────────────────────────────────────── */
+
+/**
+ * POST /speech/transcribe
+ * Convert audio to text (Speech-to-Text)
+ * @param {Blob} audioBlob - The audio recording
+ * @param {string} language - Language code (yo, ha, ig, en)
+ */
+export async function transcribeAudio(audioBlob, language = "yo") {
+  const formData = new FormData();
+  formData.append("audio", audioBlob, "recording.webm");
+  formData.append("language", language);
+
+  const response = await fetch(`${API_BASE}/speech/transcribe`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) throw new Error(`Transcription failed: ${response.status}`);
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  return data.text;
+}
+
+/**
+ * POST /speech/generate
+ * Convert text to audio (Text-to-Speech) with automatic translation.
+ * Spitch automatically translates English text to the target language.
+ * Example: English text + language='yo' → Yoruba speech
+ * @param {string} text - English text to convert to speech (will be auto-translated)
+ * @param {string} language - Target language code (yo, ha, ig, en)
+ */
+export async function generateSpeech(text, language = "yo") {
+  const response = await fetch(`${API_BASE}/speech/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, language, format: "mp3" }),
+  });
+
+  if (!response.ok) throw new Error(`Speech generation failed: ${response.status}`);
+  return response.blob();
+}
+
+/**
+ * GET /speech/languages
+ * Get list of supported languages for voice interaction
+ */
+export async function getSupportedLanguages() {
+  const response = await fetch(`${API_BASE}/speech/languages`);
+  if (!response.ok) throw new Error(`Failed to fetch languages: ${response.status}`);
+  const data = await response.json();
+  return data.languages;
+}
