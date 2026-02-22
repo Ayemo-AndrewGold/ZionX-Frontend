@@ -117,6 +117,31 @@ export async function getRiskScore(threadId) {
 ───────────────────────────────────────────────────────────────── */
 
 /**
+ * POST /upload
+ * Upload a document to add to user's long-term memory.
+ * @param {File} file - The document file to upload
+ * @param {string} userId - The user ID
+ * @returns {Promise<{ok: boolean, message: string, user_id: string}>}
+ */
+export async function uploadDocument(file, userId = "guest") {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("user_id", userId);
+
+  const response = await fetch(`${API_BASE}/upload`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Upload failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
  * GET /memory/insights?thread_id=xxx
  * Returns long-term memory insights and health patterns.
  */
