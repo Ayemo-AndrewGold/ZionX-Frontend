@@ -1,6 +1,111 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /* ─────────────────────────────────────────────────────────────────
+   AUTHENTICATION HELPERS
+───────────────────────────────────────────────────────────────── */
+
+/** Get authentication headers if user is logged in */
+function getAuthHeaders() {
+  const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+  if (token) {
+    return {
+      "Authorization": `Bearer ${token}`
+    };
+  }
+  return {};
+}
+
+/** Get current user ID from localStorage */
+export function getCurrentUserId() {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("userId") || null;
+  }
+  return null;
+}
+
+/** Check if user is logged in */
+export function isLoggedIn() {
+  return getCurrentUserId() !== null;
+}
+
+/** Logout user by clearing localStorage */
+export function logoutUser() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+    localStorage.removeItem("userEmail");
+  }
+}
+
+/** Get current username */
+export function getCurrentUsername() {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("username") || null;
+  }
+  return null;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   AUTHENTICATION ENDPOINTS
+───────────────────────────────────────────────────────────────── */
+
+/** POST /auth/register - Register a new user */
+export async function registerUser(username, password, email = null) {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password, email }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Registration failed");
+  return data;
+}
+
+/** POST /auth/login - Login user and get session token */
+export async function loginUser(username, password) {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Login failed");
+  return data;
+}
+
+/** POST /auth/logout - Logout user and invalidate session */
+export async function logoutUserAPI() {
+  const response = await fetch(`${API_BASE}/auth/logout`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error("Logout failed");
+  logoutUser(); // Clear local storage
+  return await response.json();
+}
+
+/** GET /auth/verify - Verify if current session is valid */
+export async function verifySession() {
+  const response = await fetch(`${API_BASE}/auth/verify`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) return false;
+  const data = await response.json();
+  return data.ok === true;
+}
+
+/** GET /auth/me - Get current user info */
+export async function getCurrentUser() {
+  const response = await fetch(`${API_BASE}/auth/me`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error("Not authenticated");
+  const data = await response.json();
+  return data.user;
+}
+
+/* ─────────────────────────────────────────────────────────────────
    CHAT ENDPOINTS
 ───────────────────────────────────────────────────────────────── */
 
@@ -8,7 +113,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 export async function sendChat(message, threadId = "default") {
   const response = await fetch(`${API_BASE}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      ...getAuthHeaders()
+    },
     body: JSON.stringify({ message, thread_id: threadId }),
   });
   if (!response.ok) throw new Error(`Server error ${response.status}`);
@@ -120,16 +228,19 @@ export async function getRiskScore(threadId) {
  * POST /upload
  * Upload a document to add to user's long-term memory.
  * @param {File} file - The document file to upload
- * @param {string} userId - The user ID
+ * @param {string} userId - The user ID (optional if authenticated)
  * @returns {Promise<{ok: boolean, message: string, user_id: string}>}
  */
-export async function uploadDocument(file, userId = "guest") {
+export async function uploadDocument(file, userId = null) {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("user_id", userId);
+  if (userId) {
+    formData.append("user_id", userId);
+  }
 
   const response = await fetch(`${API_BASE}/upload`, {
     method: "POST",
+    headers: getAuthHeaders(), // Auth headers added, no Content-Type for FormData
     body: formData,
   });
 
