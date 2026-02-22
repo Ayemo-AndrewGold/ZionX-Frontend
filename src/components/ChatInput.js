@@ -1,9 +1,13 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { uploadDocument } from "@/lib/api";
 
-export default function ChatInput({ value, onChange, onSend, disabled }) {
+export default function ChatInput({ value, onChange, onSend, disabled, userId = "guest" }) {
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -16,6 +20,32 @@ export default function ChatInput({ value, onChange, onSend, disabled }) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (!disabled && value.trim()) onSend();
+    }
+  }
+
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadMessage("");
+
+    try {
+      const result = await uploadDocument(file, userId);
+      setUploadMessage(`✓ ${result.message || "Report uploaded successfully!"}`);
+      
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setUploadMessage(""), 3000);
+    } catch (error) {
+      setUploadMessage(`✗ ${error.message}`);
+      setTimeout(() => setUploadMessage(""), 5000);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -95,17 +125,52 @@ export default function ChatInput({ value, onChange, onSend, disabled }) {
 
             {/* Attach stub */}
             <button
-              title="Attach medical report (coming soon)"
-              disabled
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed transition-colors"
+              type="button"
+              title="Attach medical report"
+              disabled={uploading || disabled}
+              onClick={() => fileInputRef.current?.click()}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                uploading || disabled
+                  ? "text-slate-400 cursor-not-allowed"
+                  : "text-teal-600 hover:bg-teal-50"
+              }`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-              <span>Attach Report</span>
+              {uploading ? (
+                <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              )}
+              <span>{uploading ? "Uploading..." : "Attach Report"}</span>
             </button>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.pdf,.doc,.docx,.md"
+              onChange={handleFileChange}
+              disabled={uploading || disabled}
+              style={{ display: "none" }}
+            />
 
             <div className="flex-1" />
+            
+            {/* Upload status message */}
+            {uploadMessage && (
+              <div
+                className={`text-xs px-2 py-1 rounded ${
+                  uploadMessage.startsWith("✗") 
+                    ? "text-red-600 bg-red-50" 
+                    : "text-green-600 bg-green-50"
+                }`}
+              >
+                {uploadMessage}
+              </div>
+            )}
           </div>
         </div>
       </div>

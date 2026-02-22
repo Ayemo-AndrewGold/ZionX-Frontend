@@ -21,6 +21,7 @@ export default function ChatWindow() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [threadId] = useState(() => uuid());
+  const [userId] = useState("guest"); // TODO: Replace with actual user authentication
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeNav, setActiveNav] = useState("chat");
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -171,6 +172,7 @@ export default function ChatWindow() {
             onChange={setInput}
             onSend={handleSend}
             disabled={streaming}
+            userId={userId}
           />
         </main>
       </div>
