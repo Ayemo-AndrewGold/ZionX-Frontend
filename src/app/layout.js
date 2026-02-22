@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "ZionX — AI Preventive Health Assistant",
+  title: "Wellah — AI Preventive Health Assistant",
   description:
     "Multi-agent AI health system with specialized agents for pregnancy, chronic disease, pediatrics, mental health, and emergency triage. Preventive, context-aware, and memory-driven.",
 };

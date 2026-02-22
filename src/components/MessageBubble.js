@@ -21,7 +21,7 @@ function renderInline(text) {
 
 /* ── Markdown-like text renderer ── */
 function FormattedText({ text }) {
-  const lines = text.split("\n");
+  const lines = String(text ?? "").split("\n");
   return (
     <div className="flex flex-col gap-1">
       {lines.map((line, i) => {

@@ -126,6 +126,36 @@ export async function sendChat(message, threadId = "default") {
   return data;
 }
 
+/** GET /chat/history — Retrieve chat history for a thread. */
+export async function getChatHistory(threadId = "default") {
+  const response = await fetch(`${API_BASE}/chat/history?thread_id=${threadId}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error(`Failed to fetch history: ${response.status}`);
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  // Return messages array
+  return data.messages || [];
+}
+
+/** GET /chat/recent — Get recent chat threads/conversations. */
+export async function getRecentChats(limit = 10) {
+  if (!isLoggedIn()) return [];
+  const response = await fetch(`${API_BASE}/chat/recent?limit=${limit}`, {
+    headers: getAuthHeaders(),
+  });
+  // If unauthorized (token expired/invalid), return empty instead of throwing
+  if (response.status === 401) {
+    logoutUser();
+    return [];
+  }
+  if (!response.ok) throw new Error(`Failed to fetch recent chats: ${response.status}`);
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  // Return threads array
+  return data.threads || [];
+}
+
 /* ─────────────────────────────────────────────────────────────────
    HEALTH CHECK
 ───────────────────────────────────────────────────────────────── */
@@ -338,4 +368,72 @@ export async function getSupportedLanguages() {
   if (!response.ok) throw new Error(`Failed to fetch languages: ${response.status}`);
   const data = await response.json();
   return data.languages;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   RISK MONITOR ENDPOINTS
+───────────────────────────────────────────────────────────────── */
+
+/**
+ * GET /risk/history
+ * Gets user's risk assessment history.
+ * @param {number} days - Number of days to retrieve (optional)
+ */
+export async function getRiskHistory(days = null) {
+  const url = days 
+    ? `${API_BASE}/risk/history?days=${days}`
+    : `${API_BASE}/risk/history`;
+  
+  const res = await fetch(url, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to get risk history: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * GET /risk/summary
+ * Gets summary statistics of risk assessments.
+ * @param {number} days - Number of days to summarize (default: 30)
+ */
+export async function getRiskSummary(days = 30) {
+  const res = await fetch(`${API_BASE}/risk/summary?days=${days}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to get risk summary: ${res.status}`);
+  return res.json();
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   EMERGENCY ALERTS ENDPOINTS
+───────────────────────────────────────────────────────────────── */
+
+/**
+ * GET /alerts/history
+ * Gets user's emergency alert history.
+ * @param {number} days - Number of days to retrieve (optional)
+ */
+export async function getAlertsHistory(days = null) {
+  const url = days 
+    ? `${API_BASE}/alerts/history?days=${days}`
+    : `${API_BASE}/alerts/history`;
+  
+  const res = await fetch(url, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to get alerts history: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * GET /alerts/summary
+ * Gets summary statistics of emergency alerts.
+ * @param {number} days - Number of days to summarize (default: 30)
+ */
+export async function getAlertsSummary(days = 30) {
+  const res = await fetch(`${API_BASE}/alerts/summary?days=${days}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to get alerts summary: ${res.status}`);
+  return res.json();
 }
