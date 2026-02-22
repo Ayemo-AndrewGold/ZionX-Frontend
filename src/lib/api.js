@@ -176,17 +176,25 @@ export async function getOnboardingProfile() {
 }
 
 /**
- * POST /upload - Upload medical document
- * Uploads a medical document for AI summarisation and fact extraction.
- * @param {FormData} formData - contains the file
+ * POST /upload — Upload a medical document for AI fact extraction.
+ * @param {File} file - The document file to upload
+ * @param {string|null} userId - Optional user ID (used when not authenticated)
+ * @returns {Promise<{ok: boolean, message: string, user_id: string}>}
  */
-export async function uploadMedicalDocument(formData) {
+export async function uploadDocument(file, userId = null) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (userId) formData.append("user_id", userId);
+
   const res = await fetch(`${API_BASE}/upload`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: formData,
   });
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Upload failed: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -243,121 +251,37 @@ export async function getTrackingSummary(days = 7) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   RISK ASSESSMENT  (API stub)
+   MEMORY ENDPOINTS
 ───────────────────────────────────────────────────────────────── */
 
 /**
- * GET /risk/score?thread_id=xxx
- * Returns the current dynamic risk score for a user session.
- * @param {string} threadId
- * @returns {{ level: "low"|"moderate"|"high"|"critical", score: number }}
+ * GET /memory — returns the user's long-term memory facts.
+ * Reshapes the response into { insights, patterns } for the UI.
  */
-export async function getRiskScore(threadId) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/risk/score?thread_id=${threadId}`);
-  // if (!res.ok) throw new Error(`Risk score fetch failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] getRiskScore:", threadId);
-  return { level: "low", score: 20 };
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   MEMORY  (API stub)
-───────────────────────────────────────────────────────────────── */
-
-/**
- * POST /upload
- * Upload a document to add to user's long-term memory.
- * @param {File} file - The document file to upload
- * @param {string} userId - The user ID (optional if authenticated)
- * @returns {Promise<{ok: boolean, message: string, user_id: string}>}
- */
-export async function uploadDocument(file, userId = null) {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (userId) {
-    formData.append("user_id", userId);
-  }
-
-  const response = await fetch(`${API_BASE}/upload`, {
-    method: "POST",
-    headers: getAuthHeaders(), // Auth headers added, no Content-Type for FormData
-    body: formData,
+export async function getMemoryInsights() {
+  const res = await fetch(`${API_BASE}/memory`, {
+    headers: getAuthHeaders(),
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Upload failed: ${response.status}`);
-  }
-
-  return response.json();
+  if (!res.ok) throw new Error(`Memory fetch failed: ${res.status}`);
+  const data = await res.json();
+  // facts is a newline-delimited string; split into an array for the UI
+  const insights = data.facts
+    ? data.facts.split("\n").filter((line) => line.trim())
+    : [];
+  return { insights, patterns: [] };
 }
 
 /**
- * GET /memory/insights?thread_id=xxx
- * Returns long-term memory insights and health patterns.
+ * DELETE /memory?user_id=xxx — permanently deletes all memory for a user.
+ * @param {string} userId — the user's ID (available from getCurrentUserId())
  */
-export async function getMemoryInsights(threadId) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/memory/insights?thread_id=${threadId}`);
-  // if (!res.ok) throw new Error(`Memory fetch failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] getMemoryInsights:", threadId);
-  return { insights: [], patterns: [] };
-}
-
-/**
- * DELETE /memory?thread_id=xxx
- * Deletes all long-term memory for a user (privacy compliance).
- */
-export async function deleteMemory(threadId) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/memory?thread_id=${threadId}`, { method: "DELETE" });
-  // if (!res.ok) throw new Error(`Memory delete failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] deleteMemory:", threadId);
-  return { ok: true };
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   EMERGENCY ALERTS  (API stub)
-───────────────────────────────────────────────────────────────── */
-
-/**
- * POST /alerts/emergency
- * Sends emergency alert to doctor and emergency contact (requires consent).
- * @param {Object} payload - { threadId, riskLevel, summary, timestamp }
- */
-export async function sendEmergencyAlert(payload) {
-  // TODO: uncomment when backend endpoint is ready
-  // const res = await fetch(`${API_BASE}/alerts/emergency`, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(payload),
-  // });
-  // if (!res.ok) throw new Error(`Alert failed: ${res.status}`);
-  // return res.json();
-  console.log("[API STUB] sendEmergencyAlert:", payload);
-  return { ok: true };
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   LOCAL SPECIALIST DETECTION  (keyword-based, no API needed)
-───────────────────────────────────────────────────────────────── */
-
-export function detectSpecialist(text) {
-  const t = text.toLowerCase();
-  if (/pregnan|trimester|fetal|obstetric|labour|labor|midwife|baby|birth|maternal|womb/.test(t))
-    return "pregnancy";
-  if (/diabet|insulin|glucose|blood sugar|hypoglycemi|hyperglycemi|hba1c|endocrin|hypertension|asthma|chronic/.test(t))
-    return "diabetes";
-  if (/child|infant|toddler|newborn|paediatric|pediatric|adolescent|teen|vaccin|milestone/.test(t))
-    return "pediatrics";
-  if (/depress|anxiety|mental|stress|mood|therapy|psychiatr|trauma|burnout|suicid|self.harm|sleep disorder/.test(t))
-    return "mental_health";
-  if (/emergency|severe|critical|chest pain|can't breathe|unconscious|bleeding|stroke|heart attack/.test(t))
-    return "emergency";
-  return null;
+export async function deleteMemory(userId) {
+  const res = await fetch(`${API_BASE}/memory?user_id=${encodeURIComponent(userId)}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Memory delete failed: ${res.status}`);
+  return res.json();
 }
 
 /* ─────────────────────────────────────────────────────────────────
