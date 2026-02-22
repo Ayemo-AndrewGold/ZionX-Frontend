@@ -8,14 +8,8 @@ import MessageBubble from "./MessageBubble";
 import OnboardingModal from "./OnboardingModal";
 import LoginModal from "./LoginModal";
 import { SPECIALISTS } from "./SpecialistCards";
-import { sendChat, detectSpecialist, isLoggedIn, getCurrentUserId, getCurrentUsername, logoutUser } from "@/lib/api";
-
-function uuid() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
+import { sendChat, isLoggedIn, getCurrentUserId, getCurrentUsername, logoutUser } from "@/lib/api";
+import { detectSpecialist, uuid } from "@/lib/utils";
 
 export default function ChatWindow() {
   const [messages, setMessages] = useState([]);
