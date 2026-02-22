@@ -7,15 +7,19 @@ import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
 import OnboardingModal from "./OnboardingModal";
 import LoginModal from "./LoginModal";
+import DailyTracking from "./DailyTracking";
+import HealthMemory from "./HealthMemory";
+import RiskMonitor from "./RiskMonitor";
+import EmergencyAlerts from "./EmergencyAlerts";
 import { SPECIALISTS } from "./SpecialistCards";
-import { sendChat, isLoggedIn, getCurrentUserId, getCurrentUsername, logoutUser } from "@/lib/api";
+import { sendChat, isLoggedIn, getCurrentUserId, getCurrentUsername, logoutUser, getChatHistory, getRecentChats } from "@/lib/api";
 import { detectSpecialist, uuid } from "@/lib/utils";
 
 export default function ChatWindow() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [threadId] = useState(() => uuid());
+  const [threadId, setThreadId] = useState(() => uuid());
   const [userId, setUserId] = useState(null);
   const [username, setUsername] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -24,6 +28,7 @@ export default function ChatWindow() {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [activeSpecialist, setActiveSpecialist] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("yo"); // Default to Yoruba
+  const [recentChats, setRecentChats] = useState([]);
 
   const bottomRef = useRef(null);
 
@@ -37,6 +42,51 @@ export default function ChatWindow() {
       setLoginModalOpen(true);
     }
   }, []);
+
+  // Load chat history when userId and threadId are available
+  useEffect(() => {
+    async function loadHistory() {
+      if (!userId || !threadId) return;
+      
+      try {
+        const history = await getChatHistory(threadId);
+        if (history && history.length > 0) {
+          // Convert backend message format to component format
+          const formattedMessages = history.map(msg => ({
+            id: uuid(),
+            role: msg.role,
+            content: msg.content,
+            timestamp: Date.now(),
+            streaming: false,
+            thinking: false
+          }));
+          setMessages(formattedMessages);
+        }
+      } catch (err) {
+        console.error("Failed to load chat history:", err);
+        // Don't show error to user, just start with empty chat
+      }
+    }
+    
+    loadHistory();
+  }, [userId, threadId]);
+
+  // Load recent chats when user logs in
+  useEffect(() => {
+    async function loadRecentChats() {
+      if (!userId) return;
+      
+      try {
+        const chats = await getRecentChats(10);
+        setRecentChats(chats);
+      } catch (err) {
+        console.error("Failed to load recent chats:", err);
+        // Don't show error, just keep empty array
+      }
+    }
+    
+    loadRecentChats();
+  }, [userId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,6 +168,14 @@ export default function ChatWindow() {
         risk_level: result.risk_level,
         urgency: result.urgency
       });
+      
+      // Refresh recent chats after sending a message
+      try {
+        const chats = await getRecentChats(10);
+        setRecentChats(chats);
+      } catch (err) {
+        console.error("Failed to refresh recent chats:", err);
+      }
     } catch (err) {
       updateLastAiMessage({ 
         content: `⚠️ Connection error: ${err.message}`, 
@@ -129,11 +187,92 @@ export default function ChatWindow() {
     }
   }
 
-  function handleNewChat() {
+  function handleChatSelect(selectedThreadId) {
     if (streaming) return;
+    
+    // Switch to the selected thread
+    setThreadId(selectedThreadId);
     setMessages([]);
     setInput("");
     setActiveSpecialist(null);
+    setActiveNav("chat");
+  }
+
+  function handleNewChat() {
+    if (streaming) return;
+    // Create a new thread ID
+    setThreadId(uuid());
+    setMessages([]);
+    setInput("");
+    setActiveSpecialist(null);
+    setActiveNav("chat"); // Return to chat view
+  }
+
+  function renderMainContent() {
+    // Render based on active navigation
+    switch (activeNav) {
+      case "tracking":
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <DailyTracking />
+          </div>
+        );
+      case "memory":
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <HealthMemory />
+          </div>
+        );
+      case "risk":
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <RiskMonitor />
+          </div>
+        );
+      case "alerts":
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <EmergencyAlerts />
+          </div>
+        );
+      case "chat":
+      default:
+        // Render chat interface
+        return (
+          <>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto">
+              {isEmpty ? (
+                <div className="h-full flex items-center justify-center px-4">
+                  <div className="text-center max-w-md">
+                    <h2 className="text-2xl font-semibold text-slate-700 mb-2">Wellah</h2>
+                    <p className="text-slate-500 text-sm">Ready when you are.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col gap-5">
+                  {messages.map((msg) => (
+                    <MessageBubble key={msg.id} message={msg} language={selectedLanguage} />
+                  ))}
+                  <div ref={bottomRef} />
+                </div>
+              )}
+              {isEmpty && <div ref={bottomRef} />}
+            </div>
+
+            {/* Input */}
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSend={handleSend}
+              disabled={streaming}
+              userId={userId}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+            />
+          </>
+        );
+    }
   }
 
   const isEmpty = messages.length === 0;
@@ -178,44 +317,15 @@ export default function ChatWindow() {
               onOpenProfile={() => setOnboardingOpen(true)}
               onLogout={handleLogout}
               username={username}
-              recentChats={[]}
+              recentChats={recentChats}
+              onChatSelect={handleChatSelect}
             />
           )}
         </div>
 
-        {/* Main chat area */}
+        {/* Main area */}
         <main className="flex-1 flex flex-col overflow-hidden bg-slate-50">
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto">
-            {isEmpty ? (
-              <div className="h-full flex items-center justify-center px-4">
-                <div className="text-center max-w-md">
-                  <h2 className="text-2xl font-semibold text-slate-700 mb-2">ZionX</h2>
-                  <p className="text-slate-500 text-sm">Ready when you are.</p>
-                </div>
-              </div>
-            ) : (
-              <div className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col gap-5">
-                {messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} language={selectedLanguage} />
-                ))}
-                <div ref={bottomRef} />
-              </div>
-            )}
-            {isEmpty && <div ref={bottomRef} />}
-          </div>
-
-          {/* Input */}
-          <ChatInput
-            value={input}
-            onChange={setInput}
-            onSend={handleSend}
-            disabled={streaming}
-            userId={userId}
-            selectedLanguage={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-          />
+          {renderMainContent()}
         </main>
       </div>
 
