@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { SPECIALISTS } from "./SpecialistCards";
+import { generateSpeech } from "@/lib/api";
 
 /* ── Inline bold/italic renderer ── */
 function renderInline(text) {
@@ -119,8 +120,109 @@ function CopyButton({ text }) {
   );
 }
 
+/* ── Voice playback button ── */
+function VoiceButton({ text, language = "yo" }) {
+  const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const audioRef = useRef(null);
+
+  const languageNames = {
+    'yo': 'Yoruba',
+    'ha': 'Hausa',
+    'ig': 'Igbo',
+    'en': 'English'
+  };
+
+  const handlePlay = async () => {
+    if (playing) {
+      audioRef.current?.pause();
+      setPlaying(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const audioBlob = await generateSpeech(text, language);
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audio.onerror = () => {
+        setPlaying(false);
+        setLoading(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      await audio.play();
+      setPlaying(true);
+    } catch (error) {
+      console.error("Voice playback error:", error);
+      alert("Failed to play voice. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const langName = languageNames[language] || language;
+  const tooltip = playing 
+    ? "Stop voice" 
+    : `Play in ${langName}${language !== 'en' ? ' (translated & spoken)' : ''}`;
+
+  const languageFlags = {
+    'yo': '🇳🇬',
+    'ha': '🇳🇬',
+    'ig': '🇳🇬',
+    'en': '🇬🇧'
+  };
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <button
+        onClick={handlePlay}
+        disabled={loading}
+        title={tooltip}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-teal-600 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+        ) : playing ? (
+          <svg className="w-3.5 h-3.5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+        )}
+      </button>
+      {language !== 'en' && (
+        <span 
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] text-slate-400 font-medium"
+          title={langName}
+        >
+          {languageFlags[language]} {language.toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /* ── Main MessageBubble ── */
-export default function MessageBubble({ message }) {
+export default function MessageBubble({ message, language = "yo" }) {
   const isUser = message.role === "user";
   const isThinking = message.thinking === true;
 
@@ -157,7 +259,7 @@ export default function MessageBubble({ message }) {
           )}
         </div>
 
-        {/* Meta row: badge + timestamp + copy */}
+        {/* Meta row: badge + timestamp + voice + copy */}
         <div className={`flex items-center gap-2 px-1 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
           {message.specialist && !isUser && (
             <RoutingBadge specialist={message.specialist} />
@@ -168,7 +270,10 @@ export default function MessageBubble({ message }) {
             </span>
           )}
           {!isUser && !isThinking && message.content && (
-            <CopyButton text={message.content} />
+            <>
+              <VoiceButton text={message.content} language={language} />
+              <CopyButton text={message.content} />
+            </>
           )}
         </div>
       </div>

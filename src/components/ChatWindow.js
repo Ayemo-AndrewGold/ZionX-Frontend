@@ -26,6 +26,7 @@ export default function ChatWindow() {
   const [activeNav, setActiveNav] = useState("chat");
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [activeSpecialist, setActiveSpecialist] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("yo"); // Default to Yoruba
 
   const bottomRef = useRef(null);
 
@@ -158,7 +159,7 @@ export default function ChatWindow() {
             ) : (
               <div className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col gap-5">
                 {messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} />
+                  <MessageBubble key={msg.id} message={msg} language={selectedLanguage} />
                 ))}
                 <div ref={bottomRef} />
               </div>
@@ -173,6 +174,8 @@ export default function ChatWindow() {
             onSend={handleSend}
             disabled={streaming}
             userId={userId}
+            selectedLanguage={selectedLanguage}
+            onLanguageChange={setSelectedLanguage}
           />
         </main>
       </div>
